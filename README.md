@@ -18,11 +18,26 @@ Move your cursor to the notch and it expands downward; move away and it collapse
 - **Background agent** — no Dock icon, lives in the menu bar; optional launch at
   login.
 
+## Install (download)
+
+1. Download `NotchShelf.zip` from the [latest release](../../releases/latest) and unzip it.
+2. Move **NotchShelf.app** to `/Applications`.
+3. Because the app isn't notarized yet, the first launch is Gatekeeper-blocked.
+   **Right-click the app → Open → Open**, or run once:
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/NotchShelf.app
+   open /Applications/NotchShelf.app
+   ```
+4. Look for the panel at the notch and the `▭` icon in the menu bar.
+5. For the **Now Playing** strip, click **Enable** in the panel and allow the
+   Automation prompt (or grant it later in *System Settings ▸ Privacy & Security
+   ▸ Automation*).
+
 ## Requirements
 
 - macOS 13 (Ventura) or later
-- Xcode 15+ (built and tested with Xcode 26)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
+- To build from source: Xcode 15+ (built and tested with Xcode 26) and
+  [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 
 ## Build & run
 
@@ -61,9 +76,12 @@ not the `.xcodeproj`.
 
 ## Notes & limitations
 
-- **Now Playing** uses the private MediaRemote framework loaded at runtime. Apple
-  has tightened access to it on recent macOS versions; if no data is returned the
-  strip shows an idle state. Nothing private is linked at build time.
+- **Now Playing** reads the current track from **Music** and **Spotify** via
+  AppleScript and requires a one-time macOS **Automation** permission (the app
+  requests it on first launch; click *Enable* / *Allow*). It does not yet cover
+  browsers or other players — Apple locked down the system-wide MediaRemote API on
+  macOS 15.4+, so universal now-playing would require the perl-based
+  [`mediaremote-adapter`](https://github.com/ungive/mediaremote-adapter).
 - The app is **not sandboxed** — this is what lets files drag back out to Finder
   reliably (the same approach NotchDrop uses). Sandboxing would require an
   `NSFilePromiseProvider` drag source instead.
