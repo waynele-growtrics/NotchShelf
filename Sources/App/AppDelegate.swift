@@ -20,6 +20,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             shelf: shelf,
             nowPlaying: nowPlaying,
             status: status)
+
+        // Surface the Automation consent prompt for the running media player so
+        // Now Playing works on macOS 15.4+ (where MediaRemote is locked down).
+        nowPlaying.requestPermission()
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }

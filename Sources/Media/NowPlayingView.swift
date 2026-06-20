@@ -10,20 +10,34 @@ struct NowPlayingView: View {
         HStack(spacing: 10) {
             artwork
             VStack(alignment: .leading, spacing: 1) {
-                Text(model.hasTrack ? model.title : "Nothing playing")
+                Text(primaryText)
                     .font(.system(size: 12, weight: .semibold))
                     .lineLimit(1)
-                Text(model.hasTrack ? model.artist : "Start a track to see it here")
+                Text(secondaryText)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
-            if model.hasTrack {
+            if model.needsPermission {
+                Button("Enable") { model.requestPermission(); model.openAutomationSettings() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            } else if model.hasTrack {
                 controls
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var primaryText: String {
+        if model.hasTrack { return model.title }
+        return model.needsPermission ? "Now Playing needs permission" : "Nothing playing"
+    }
+
+    private var secondaryText: String {
+        if model.hasTrack { return model.artist }
+        return model.needsPermission ? "Click Enable, then allow Automation" : "Start a track to see it here"
     }
 
     private var artwork: some View {
