@@ -24,6 +24,8 @@
 	<string>13.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>NotchShelf reads the current track from Music and Spotify to show it in the notch.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Released under the MIT License.</string>
 	<key>NSPrincipalClass</key>
