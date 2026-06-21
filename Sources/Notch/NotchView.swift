@@ -89,6 +89,7 @@ struct NotchView: View {
             Divider().overlay(Color.white.opacity(0.12))
             middleSection
                 .frame(maxHeight: .infinity)
+                .clipped()
             bottomBar
         }
         .foregroundStyle(.white)

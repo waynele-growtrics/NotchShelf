@@ -19,9 +19,11 @@ final class NotchViewModel: ObservableObject {
     /// Measured physical (or synthetic) notch size, in points.
     @Published var notchSize: CGSize = CGSize(width: 180, height: 32)
 
-    /// Expanded panel dimensions. Width follows the user's setting.
+    /// Expanded panel dimensions. Width follows the user's setting. Height has to
+    /// fit: notch inset + now-playing row + progress bar + Files/Clipboard tabs +
+    /// divider + a row of 70pt cells + the status footer.
     var expandedWidth: CGFloat { CGFloat(Settings.shared.panelWidth) }
-    let expandedHeight: CGFloat = 190
+    var expandedHeight: CGFloat { notchSize.height + 218 }
 
     /// The animation used for every open/close transition.
     let animation: Animation = .spring(response: 0.4, dampingFraction: 0.8)
