@@ -88,8 +88,46 @@ final class NowPlayingModel: ObservableObject {
         elapsed = info.elapsed
         duration = info.duration
         needsPermission = info.denied
-        // Only refetch the (static) app icon when the track/source actually changes.
-        if trackChanged { artwork = info.source.flatMap { Self.appIcon(for: $0) } }
+        // On a track change, show the app icon immediately, then fetch the real
+        // album artwork in the background and swap it in when it arrives.
+        if trackChanged {
+            artwork = info.source.flatMap { Self.appIcon(for: $0) }
+            if let src = info.source { fetchArtwork(src, forTitle: info.title) }
+        }
+    }
+
+    /// Fetch real album art off the main thread. Music exposes the raw artwork
+    /// bytes; Spotify exposes an artwork URL we download.
+    private func fetchArtwork(_ src: Source, forTitle expected: String) {
+        Self.queue.async {
+            let image = (src == .music) ? Self.musicArtwork() : Self.spotifyArtwork()
+            guard let image else { return }
+            Task { @MainActor in
+                // Ignore if the track changed again while we were fetching.
+                if self.title == expected { self.artwork = image }
+            }
+        }
+    }
+
+    private nonisolated static func musicArtwork() -> NSImage? {
+        var error: NSDictionary?
+        guard let script = NSAppleScript(source:
+            "tell application \"Music\" to get data of artwork 1 of current track") else { return nil }
+        let desc = script.executeAndReturnError(&error)
+        guard error == nil else { return nil }
+        let data = desc.data
+        return data.isEmpty ? nil : NSImage(data: data)
+    }
+
+    private nonisolated static func spotifyArtwork() -> NSImage? {
+        var error: NSDictionary?
+        guard let script = NSAppleScript(source:
+            "tell application \"Spotify\" to get artwork url of current track") else { return nil }
+        let desc = script.executeAndReturnError(&error)
+        guard error == nil, let urlString = desc.stringValue,
+              let url = URL(string: urlString),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return NSImage(data: data)
     }
 
     private nonisolated static func read(_ player: Source) -> Info {
