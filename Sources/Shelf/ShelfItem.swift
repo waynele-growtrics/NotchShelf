@@ -12,13 +12,16 @@ struct ShelfItem: Identifiable, Hashable, Sendable {
     let storageURL: URL
     let addedAt: Date
     let byteSize: Int64
+    var isPinned: Bool
 
-    init(id: UUID = UUID(), fileName: String, storageURL: URL, addedAt: Date, byteSize: Int64) {
+    init(id: UUID = UUID(), fileName: String, storageURL: URL, addedAt: Date,
+         byteSize: Int64, isPinned: Bool = false) {
         self.id = id
         self.fileName = fileName
         self.storageURL = storageURL
         self.addedAt = addedAt
         self.byteSize = byteSize
+        self.isPinned = isPinned
     }
 
     /// The Finder icon for the stored file, sized for the shelf cell.

@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 /// any app; the whole strip is a drop target for adding more.
 struct ShelfView: View {
     @ObservedObject var model: ShelfModel
+    var accent: Color = .accentColor
 
     var body: some View {
         Group {
@@ -14,7 +15,7 @@ struct ShelfView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(model.items) { item in
-                            ShelfItemCell(item: item, model: model)
+                            ShelfItemCell(item: item, model: model, accent: accent)
                         }
                     }
                     .padding(.horizontal, 4)
@@ -41,6 +42,7 @@ struct ShelfView: View {
 private struct ShelfItemCell: View {
     let item: ShelfItem
     @ObservedObject var model: ShelfModel
+    var accent: Color
     @State private var isHovering = false
 
     var body: some View {
@@ -61,6 +63,14 @@ private struct ShelfItemCell: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(isHovering ? Color.white.opacity(0.12) : Color.white.opacity(0.05))
         )
+        .overlay(alignment: .topLeading) {
+            if item.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(accent)
+                    .padding(3)
+            }
+        }
         .overlay(alignment: .topTrailing) {
             if isHovering {
                 Button {
@@ -81,6 +91,8 @@ private struct ShelfItemCell: View {
         .contextMenu {
             Button("Open") { model.open(item) }
             Button("Reveal in Finder") { model.revealInFinder(item) }
+            Button("Share…") { model.share(item) }
+            Button(item.isPinned ? "Unpin" : "Pin") { model.togglePin(item) }
             Divider()
             Button("Remove", role: .destructive) { model.remove(item) }
         }

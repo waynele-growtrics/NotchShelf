@@ -28,6 +28,8 @@ private struct MenuContent: View {
                 launchAtLogin = LaunchAtLogin.isEnabled
             }
 
+        Button("Settings…") { SettingsWindow.show() }
+
         Divider()
 
         Button("Quit NotchShelf") { NSApplication.shared.terminate(nil) }

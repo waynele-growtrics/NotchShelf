@@ -13,12 +13,20 @@ Move your cursor to the notch and it expands downward; move away and it collapse
 - **File shelf** — drag files onto the notch to hold them, then drag them back out
   to Finder or any app. Dropped files are copied into private storage, so they
   survive even if the original is moved or deleted, and persist across relaunches.
-- **Now playing** — track, artist, artwork, and transport controls for the active
-  media app (best-effort via the system MediaRemote service).
+  Right-click to **Share / AirDrop**, **Pin** (survives Clear), reveal, or remove;
+  **Save All to Downloads** and a total-size readout in the footer.
+- **Clipboard history** — a second tab keeps your recent copied text and images;
+  click to re-copy or drag an entry straight out. In-memory only (never written to
+  disk), and password-manager copies are ignored.
+- **Now playing** — track, artist, artwork, transport controls, and a **seekable
+  progress bar** for Music / Spotify; click the artwork to jump to the player.
 - **System status** — battery level / charging state and a clock.
-- **Hover to expand** — spring-animated dynamic-island-style open/close.
-- **Background agent** — no Dock icon, lives in the menu bar; optional launch at
-  login.
+- **Hover to expand** — spring-animated dynamic-island-style open/close, plus a
+  **⌘⌥N** global hotkey to toggle it.
+- **Settings** — panel width, accent color, which sections to show, auto-clear
+  timer for unpinned files, hotkey, and launch-at-login.
+- **Background agent** — no Dock icon, lives in the menu bar; collapses to a
+  click-through strip that never blocks the screen underneath.
 
 ## Install (download)
 

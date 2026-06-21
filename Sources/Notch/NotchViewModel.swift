@@ -19,8 +19,8 @@ final class NotchViewModel: ObservableObject {
     /// Measured physical (or synthetic) notch size, in points.
     @Published var notchSize: CGSize = CGSize(width: 180, height: 32)
 
-    /// Expanded panel dimensions.
-    let expandedWidth: CGFloat = 420
+    /// Expanded panel dimensions. Width follows the user's setting.
+    var expandedWidth: CGFloat { CGFloat(Settings.shared.panelWidth) }
     let expandedHeight: CGFloat = 190
 
     /// The animation used for every open/close transition.
@@ -33,9 +33,9 @@ final class NotchViewModel: ObservableObject {
         if isOpen {
             return CGSize(width: expandedWidth, height: expandedHeight)
         }
-        // Collapsed: hug the physical notch, padded slightly so the silhouette is
-        // visible just outside the camera housing.
-        return CGSize(width: notchSize.width + 8, height: notchSize.height)
+        // Collapsed: hug the physical notch exactly so the window never covers
+        // (and blocks clicks on) the menu bar or content beside/below the notch.
+        return CGSize(width: notchSize.width, height: notchSize.height)
     }
 
     func open() {

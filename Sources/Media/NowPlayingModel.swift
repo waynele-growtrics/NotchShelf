@@ -23,8 +23,12 @@ final class NowPlayingModel: ObservableObject {
     @Published var album: String = ""
     @Published var artwork: NSImage?
     @Published var isPlaying: Bool = false
+    @Published var elapsed: Double = 0      // seconds
+    @Published var duration: Double = 0      // seconds
     /// True when a player is running but macOS hasn't granted Automation access.
     @Published var needsPermission: Bool = false
+
+    var progress: Double { duration > 0 ? min(max(elapsed / duration, 0), 1) : 0 }
 
     var hasTrack: Bool { !title.isEmpty }
 
@@ -40,7 +44,7 @@ final class NowPlayingModel: ObservableObject {
 
     init() {
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
         RunLoop.main.add(timer!, forMode: .common)
@@ -70,25 +74,35 @@ final class NowPlayingModel: ObservableObject {
         var source: Source?
         var title = "", artist = "", album = ""
         var isPlaying = false
+        var elapsed = 0.0, duration = 0.0
         var denied = false
     }
 
     private func apply(_ info: Info) {
+        let trackChanged = (info.title != title) || (info.source != source)
         source = info.source
         title = info.title
         artist = info.artist
         album = info.album
         isPlaying = info.isPlaying
+        elapsed = info.elapsed
+        duration = info.duration
         needsPermission = info.denied
-        artwork = info.source.flatMap { Self.appIcon(for: $0) }
+        // Only refetch the (static) app icon when the track/source actually changes.
+        if trackChanged { artwork = info.source.flatMap { Self.appIcon(for: $0) } }
     }
 
     private nonisolated static func read(_ player: Source) -> Info {
+        // Coerce position/duration to integers in-script: a plain `as text` of a
+        // real uses the system locale's decimal separator (e.g. a comma), which
+        // would break `Double(...)` parsing on non-US locales.
         let script = """
         tell application "\(player.appName)"
             set s to player state as text
             if s is "stopped" then return ""
-            return s & "\t" & (name of current track) & "\t" & (artist of current track) & "\t" & (album of current track)
+            set p to (player position) as integer
+            set d to (duration of current track) as integer
+            return s & "\t" & (name of current track) & "\t" & (artist of current track) & "\t" & (album of current track) & "\t" & (p as text) & "\t" & (d as text)
         end tell
         """
         var denied = false
@@ -97,8 +111,13 @@ final class NowPlayingModel: ObservableObject {
         }
         if raw.isEmpty { return Info() }       // running but stopped / between tracks
         let p = raw.components(separatedBy: "\t")
-        guard p.count >= 4 else { return Info() }
-        return Info(source: player, title: p[1], artist: p[2], album: p[3], isPlaying: p[0] == "playing")
+        guard p.count >= 6 else { return Info() }
+        let elapsed = Double(p[4]) ?? 0
+        // Spotify reports track duration in milliseconds; Music in seconds.
+        var duration = Double(p[5]) ?? 0
+        if player == .spotify { duration /= 1000 }
+        return Info(source: player, title: p[1], artist: p[2], album: p[3],
+                    isPlaying: p[0] == "playing", elapsed: elapsed, duration: duration)
     }
 
     // MARK: - Commands
@@ -106,6 +125,24 @@ final class NowPlayingModel: ObservableObject {
     func togglePlayPause() { command("playpause"); optimisticToggle() }
     func next() { command("next track") }
     func previous() { command("previous track") }
+
+    /// Seek to a fraction (0...1) of the current track.
+    func seek(toFraction f: Double) {
+        guard duration > 0, let app = source?.appName else { return }
+        let pos = Int((min(max(f, 0), 1) * duration).rounded())
+        elapsed = Double(pos)
+        Self.queue.async {
+            var ignored = false
+            _ = NowPlayingModel.runAppleScript("tell application \"\(app)\" to set player position to \(pos)", denied: &ignored)
+        }
+    }
+
+    /// Bring the playing app to the front (used when clicking the artwork).
+    func activatePlayer() {
+        guard let id = source?.bundleID,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return }
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+    }
 
     private func optimisticToggle() {
         isPlaying.toggle()
