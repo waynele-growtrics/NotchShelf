@@ -6,6 +6,8 @@ open-source take on the "dynamic island for Mac" idea.
 
 Move your cursor to the notch and it expands downward; move away and it collapses.
 
+![NotchShelf expanded panel — now playing, file shelf, and status](docs/preview.png)
+
 ## Features
 
 - **File shelf** — drag files onto the notch to hold them, then drag them back out
