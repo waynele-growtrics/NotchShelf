@@ -9,6 +9,7 @@ struct NotchView: View {
     @ObservedObject var shelf: ShelfModel
     @ObservedObject var nowPlaying: NowPlayingModel
     @ObservedObject var status: SystemStatusModel
+    @State private var launchAtLogin = LaunchAtLogin.isEnabled
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -43,9 +44,6 @@ struct NotchView: View {
             }
         }
         .contentShape(NotchShape())
-        .onHover { hovering in
-            if hovering { viewModel.open() } else { viewModel.close() }
-        }
         .onDrop(of: [.fileURL, .data], isTargeted: dropBinding) { providers in
             shelf.accept(providers)
             return true
@@ -83,7 +81,7 @@ struct NotchView: View {
             Divider().overlay(Color.white.opacity(0.12))
             ShelfView(model: shelf)
                 .frame(maxHeight: .infinity)
-            HStack {
+            HStack(spacing: 12) {
                 StatusView(model: status)
                 Spacer()
                 if !shelf.items.isEmpty {
@@ -96,8 +94,33 @@ struct NotchView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
                 }
+                settingsMenu
             }
         }
         .foregroundStyle(.white)
+    }
+
+    /// In-panel settings + quit, so the app is controllable without hunting for
+    /// the menu-bar icon (which can hide behind the notch).
+    private var settingsMenu: some View {
+        Menu {
+            Toggle("Launch at Login", isOn: $launchAtLogin)
+                .onChange(of: launchAtLogin) { newValue in
+                    LaunchAtLogin.set(newValue)
+                    launchAtLogin = LaunchAtLogin.isEnabled
+                }
+            Button("Clear Shelf") { shelf.clear() }
+                .disabled(shelf.items.isEmpty)
+            Divider()
+            Button("Quit NotchShelf") { NSApplication.shared.terminate(nil) }
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .frame(width: 22)
     }
 }

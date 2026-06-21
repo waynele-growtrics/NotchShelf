@@ -36,6 +36,11 @@ final class NotchWindowController {
     private let panel: NotchPanel
     private let viewModel: NotchViewModel
 
+    /// Screen-space rectangle of the notch hot-zone that opens the panel.
+    private var hotZone: NSRect = .zero
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
+
     init(viewModel: NotchViewModel,
          shelf: ShelfModel,
          nowPlaying: NowPlayingModel,
@@ -56,9 +61,41 @@ final class NotchWindowController {
         NotificationCenter.default.addObserver(
             self, selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
+
+        installMouseMonitors()
     }
 
-    deinit { NotificationCenter.default.removeObserver(self) }
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
+        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
+    }
+
+    /// Drive expand/collapse from the cursor position rather than SwiftUI
+    /// `.onHover`, which doesn't fire reliably for a non-activating background
+    /// panel. The global monitor covers the (normal) case where another app is
+    /// active; the local monitor covers events while our own panel has focus.
+    private func installMouseMonitors() {
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
+            Task { @MainActor in self?.evaluateHover() }
+        }
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved]) { [weak self] event in
+            Task { @MainActor in self?.evaluateHover() }
+            return event
+        }
+    }
+
+    private func evaluateHover() {
+        let mouse = NSEvent.mouseLocation                 // global AppKit coords
+        if viewModel.isOpen {
+            // Collapse once the cursor leaves the panel (with a small margin).
+            if !panel.frame.insetBy(dx: -14, dy: -14).contains(mouse) {
+                viewModel.close()
+            }
+        } else if hotZone.contains(mouse) {
+            viewModel.open()
+        }
+    }
 
     @objc private func screensChanged() {
         Task { @MainActor in self.reposition() }
@@ -75,6 +112,13 @@ final class NotchWindowController {
         let originX = notch.midX - width / 2
         let originY = screen.frame.maxY - height
         panel.setFrame(NSRect(x: originX, y: originY, width: width, height: height), display: true)
+
+        // Hot-zone: the notch itself, padded and extended a little downward so the
+        // cursor reliably enters it when reaching for the notch.
+        hotZone = NSRect(x: notch.minX - 6,
+                         y: notch.minY - 8,
+                         width: notch.width + 12,
+                         height: notch.height + 8)
     }
 
     func show() { panel.orderFrontRegardless() }
